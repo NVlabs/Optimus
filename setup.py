@@ -13,16 +13,16 @@ lines = [x for x in lines if ".png" not in x]
 long_description = "".join(lines)
 
 setup(
-    name="tamp_imitation",
-    packages=[package for package in find_packages() if package.startswith("tamp_imitation")],
+    name="optimus",
+    packages=[package for package in find_packages() if package.startswith("optimus")],
     install_requires=[],
     eager_resources=["*"],
     include_package_data=True,
     python_requires=">=3",
-    description="tamp_imitation",
+    description="Official code release for Optimus: Imitating Task and Motion Planning with Visuomotor Transformers",
     author="Murtaza Dalal",
-    url="https://gitlab-master.nvidia.com/murtazad/tamp_imitation",
-    author_email="",
+    url="https://github.com/NVlabs/Optimus.git",
+    author_email="mdalal@andrew.cmu.edu",
     version="0.1.0",
     long_description=long_description,
     long_description_content_type="text/markdown",

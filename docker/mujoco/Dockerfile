@@ -9,15 +9,8 @@ ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:/usr/lib/nvidia"
 ENV PYTHONPATH ${PYTHONPATH}:/workspace
 ENV MUJOCO_GL 'egl'
 ENV PATH "/usr/local/cuda-new/bin:$PATH"
-ENV MESHSETS_LOCAL_ROOT_DIR /meshsets/
-ENV ACRONYM_PATH /acronym/grasps
-COPY pip.conf pip.conf
 ENV PIP_CONFIG_FILE pip.conf
-ENV PYTHONPATH ${PYTHONPATH}:/workspace/tamp_imitation
 ENV PYTHONPATH ${PYTHONPATH}:/home/robosuite
-ENV COPPELIASIM_ROOT /home/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/
-ENV LD_LIBRARY_PATH $COPPELIASIM_ROOT:$LD_LIBRARY_PATH # fix for CoppeliaSim
-ENV QT_QPA_PLATFORM_PLUGIN_PATH $COPPELIASIM_ROOT
 ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
 
 # NOTE: each RUN command creates a new image layer, so minimize the number of run commands if possible
@@ -59,13 +52,6 @@ RUN apt-get update -y && \
         xpra xserver-xorg-dev libglfw3-dev patchelf python3-pip -y \
         && add-apt-repository -y ppa:openscad/releases && apt-get update && apt-get install -y openscad
 
-# Copy over private key, and set permissions
-# Warning! Anyone who gets their hands on this image will be able
-# to retrieve this private key file from the corresponding image layer
-ADD id_rsa /root/.ssh/id_rsa
-RUN chmod 600 /root/.ssh/id_rsa
-RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
-
 # install mujoco
 RUN mkdir /root/.mujoco/ \
     && wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz \
@@ -86,22 +72,9 @@ ENV TORCH_CUDA_ARCH_LIST "7.0 7.5 8.0"
 RUN git clone https://github.com/NVIDIA/apex /home/apex && cd /home/apex \
     && python3 -m pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
 
-#install PyRep
-RUN wget https://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
---no-check-certificate -O /home/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-&& cd /home/ && tar -xvf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-&& git clone https://github.com/stepjam/PyRep.git /home/PyRep \
-&& cd /home/PyRep && python3 -m pip install -r requirements.txt && python3 -m pip install .
-
-RUN git clone https://github.com/stepjam/RLBench.git /home/RLBench \
-&& cd /home/RLBench/ && python3 -m pip install -r requirements.txt && python3 -m pip install . \
-&& python3 -m pip install gym \
+RUN python3 -m pip install gym \
 && python3 -m pip uninstall opencv-python -y && python3 -m pip install opencv-python-headless
 
+RUN python3 -m pip install trimesh==3.12.6 pyopengl==3.1.6 
 
-#dummy arg for forcing rebuild of the dockerfile with updated code
-ARG dummy
-
-RUN python3 -m pip install trimesh==3.12.6 pyopengl==3.1.6  # breaks scene_synthesizer otherwise
-
-RUN python3 -m pip install numpy==1.23.5 #numpy 1.24.0 breaks with np.float calls
+RUN python3 -m pip install numpy==1.23.5

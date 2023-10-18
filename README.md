@@ -1,92 +1,176 @@
-# Optimus
+# OPTIMUS: Imitating Task and Motion Planning with Visuomotor Transformers
+<div style="text-align: center;">
+
+This repository is the official implementation of Imitating Task and Motion Planning with Visuomotor Transformers.
+
+[Murtaza Dalal](https://mihdalal.github.io/)$^1$, [Ajay Mandlekar](https://ai.stanford.edu/~amandlek/)$^2$,  [Caelan Garrett](http://web.mit.edu/caelan/www/)$^2$, [Ankur Handa](https://ankurhanda.github.io/)$^2$, [Ruslan Salakhutdinov](https://www.cs.cmu.edu/~rsalakhu/)$^1$, [Dieter Fox](https://homes.cs.washington.edu/~fox/)$^2$
+
+$^1$ CMU, $^2$ NVIDIA
+
+[Project Page](https://mihdalal.github.io/optimus/) | [Arxiv](https://arxiv.org/abs/2305.16309) | [Video](https://www.youtube.com/watch?v=2ItlsuNWi6Y)
 
 
+<img src="assets/optimus_gallery_gif.gif" width="100%" title="main gif">
+<div style="margin:10px; text-align: justify;">
+Optimus is a framework for training large scale imitation policies for robotic manipulation by distilling Task and Motion Planning into visuomotor Transformers. In this release we include datasets for replicating our results on Robosuite as well as code for performing TAMP data filtration and training/evaluating visuomotor Transformers on TAMP data.
 
-## Getting started
+If you find this codebase useful in your research, please cite:
+```bibtex
+@inproceedings{dalal2023optimus,
+    title={Imitating Task and Motion Planning with Visuomotor Transformers},
+    author={Dalal, Murtaza and Mandlekar, Ajay and Garrett, Caelan and Handa, Ankur and Salakhutdinov, Ruslan and Fox, Dieter},
+    journal={Conference on Robot Learning},
+    year={2023}
+}
+```
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+# Table of Contents
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- [Installation](#installation)
+- [Dataset Download](#dataset-download)
+- [TAMP Data Cleaning](#tamp-data-cleaning)
+- [Model Training](#model-training)
+- [Model Inference](#model-inference)
+- [Task Visualizations](#task-visualizations)
+- [Troubleshooting and Known Issues](#troubleshooting-and-known-issues)
+- [Citation](#citation)
 
-## Add your files
+# Installation
+To install dependencies, please run the following commands:
+```
+sudo apt-get update
+sudo apt-get install -y \
+    htop screen tmux \
+    sshfs libosmesa6-dev wget curl git \
+    libeigen3-dev \
+    liborocos-kdl-dev \
+    libkdl-parser-dev \
+    liburdfdom-dev \
+    libnlopt-dev \
+    libnlopt-cxx-dev \
+    swig \
+    python3 \
+    python3-pip \
+    python3-dev \
+    vim \
+    git-lfs \
+    cmake \
+    software-properties-common \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxi-dev \
+    mesa-common-dev \
+    zip \
+    unzip \
+    make \
+    g++ \
+    python2.7 \
+    wget \
+    vulkan-utils \
+    mesa-vulkan-drivers \
+    apt nano rsync \
+    libgl1-mesa-dev libgl1-mesa-glx libglew-dev libosmesa6-dev \
+    software-properties-common  net-tools  unzip  virtualenv \
+    xpra xserver-xorg-dev libglfw3-dev patchelf python3-pip -y \
+    && add-apt-repository -y ppa:openscad/releases && apt-get update && apt-get install -y openscad
+```
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Please add the following to your bashrc/zshrc:
+```
+export MUJOCO_GL='egl'
+WANDB_API_KEY=...
+```
+
+To install python requirements:
 
 ```
-cd existing_repo
-git remote add origin https://gitlab-master.nvidia.com/srl/optimus.git
-git branch -M main
-git push -uf origin main
+conda create -n optimus python=3.8
+conda activate optimus
+pip install -r requirements.txt
+pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+pip install -e .
 ```
 
-## Integrate with your tools
+# Dataset Download
 
-- [ ] [Set up project integrations](https://gitlab-master.nvidia.com/srl/optimus/-/settings/integrations)
+#### Method 1: Using `download_datasets.py` (Recommended)
 
-## Collaborate with your team
+`download_datasets.py` (located at `optimus/scripts`) is a python script that provides a programmatic way of downloading the datasets. This is the preferred method, because this script also sets up a directory structure for the datasets that works out of the box with the code for reproducing policy learning results.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+A few examples of using this script are provided below:
 
-## Test and Deploy
+```
+# default behavior - just download Stack dataset
+python download_datasets.py
 
-Use the built-in continuous integration in GitLab.
+# download datasets for Stack and Stack Three
+python download_datasets.py --tasks Stack StackThree
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+# download all datasets, but do a dry run first to see what will be downloaded and where
+python download_datasets.py --tasks all --dry_run
 
-***
+# download all datasets for all tasks 
+python download_datasets.py --tasks all # this downloads Stack, StackThree, StackFour and StackFive 
+```
 
-# Editing this README
+#### Method 2: Using Direct Download Links
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+You can download the datasets manually through Google Drive.
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Google Drive folder with all datasets:** [link](https://drive.google.com/drive/folders/1Dfi313igOuvc5JUCMTzQrSixUKndhW__?usp=drive_link)
 
-## Name
-Choose a self-explaining name for your project.
+# TAMP Data Cleaning
+As described in Section 3.2 of the Optimus paper, we develop two TAMP demonstration filtering strategies to curb variance in the expert supervision: 1) Prune out demonstrations that have out of distribution trajectory length 2) Remove demonstrations that exit the visible workspace. In practice, we remove trajectories that have length greater than 2 standard deviations than the mean and exit a pre-defined workspace which includes all visible regions from the fixed camera viewpoint. 
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+We include the data filtration code in `filter_trajectories.py` and give example usage below.
+```
+# usage:
+python optimus/scripts/filter_trajectories.py --hdf5_paths datasets/<>.hdf5 --x_bounds <> <> --y_bounds <> <> --z_bounds <> <> --val_ratio <> --filter_key_prefix <> --outlier_traj_length_sd <>
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# example
+python optimus/scripts/filter_trajectories.py --hdf5_paths datasets/robosuite_stack.hdf5 --outlier_traj_length_sd 2 --x_bounds -0.2 0.2 --y_bounds -0.2 0.2 --z_bounds 0 1.1 --val_ratio 0.1
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+For the datasets that we have released, we have already performed these filtration operations, so you do not need to do so. Please do not run the below 
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+# Model Training
+After downloading the appropriate datasets you’re interested in using by running the `download_datasets.py` script, you can train policies using the `pl_train.py` script in `optimus/scripts`. Our training code wraps around [robomimic](https://robomimic.github.io/) (the key difference is we use PyTorch Lightning), please see the robomimic docs for a detailed overview of the imitation learning code. Following the robomimic format, our training configs are located in optimus/exps/local/robosuite/, with a different folder for each environment (stack, stackthree, stackfour, stackfive). We demonstrate example usage below: 
+```
+# usage:
+python optimus/scripts/pl_train.py --config optimus/exps/local/robosuite/<env>/bc_transformer.json
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+# example:
+python optimus/scripts/pl_train.py --config optimus/exps/local/robosuite/stack/bc_transformer.json
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+# Model Inference 
+Given a checkpoint (from a training run), if you want to perform inference and evaluate the model, you can use `run_trained_agent_pl.py`. This script is based on `run_trained_agent.py` in [robomimic](https://robomimic.github.io/) but adds support for our PyTorch Lightning checkpoints. Concretely you need to specify the path to a specific ckpt file (for `--agent`) and the directory which contains `config.json` (for `--resume_dir`). We demonstrate example usage below: 
+```
+# usage:
+python optimus/scripts/run_trained_agent_pl.py --agent /path/to/trained_model.ckpt --resume_dir /path/to/training_dir --n <> --video_path <>.mp4
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+# example:
+python optimus/scripts/run_trained_agent_pl.py --agent optimus/trained_models/robosuite_trained_models/bc_transformer_stack_image/20231026101652/models/model_epoch_50_Stack_success_1.0.ckpt --resume_dir optimus/trained_models/robosuite_trained_models/bc_transformer_stack_image/20231026101652/ --n 10 --video_path stack.mp4
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+# Troubleshooting and Known Issues
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+- If your training seems to be proceeding slowly (especially for image-based agents), it might be a problem with robomimic and more modern versions of PyTorch. We recommend PyTorch 1.12.1 (on Ubuntu, we used `pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113`). It is also a good idea to verify that the GPU is being utilized during training.
+- If you run into trouble with installing [egl_probe](https://github.com/StanfordVL/egl_probe) during robomimic installation (e.g. `ERROR: Failed building wheel for egl_probe`) you may need to make sure `cmake` is installed. A simple `pip install cmake` should work.
+- If you run into other strange installation issues, one potential fix is to launch a new terminal, activate your conda environment, and try the install commands that are failing once again. One clue that the current terminal state is corrupt and this fix will help is if you see installations going into a different conda environment than the one you have active.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+If you run into an error not documented above, please search through the [GitHub issues](https://github.com/NVlabs/optimus/issues), and create a new one if you cannot find a fix.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## Citation
 
-## License
-For open source projects, say how it is licensed.
+Please cite [the Optimus paper](https://arxiv.org/abs/2305.16309) if you use this code in your work:
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```bibtex
+@inproceedings{dalal2023optimus,
+    title={Imitating Task and Motion Planning with Visuomotor Transformers},
+    author={Dalal, Murtaza and Mandlekar, Ajay and Garrett, Caelan and Handa, Ankur and Salakhutdinov, Ruslan and Fox, Dieter},
+    journal={Conference on Robot Learning},
+    year={2023}
+}
+```

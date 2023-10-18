@@ -1,0 +1,1 @@
+rclone -v copy $1 remote:Research/projects/Optimus/$1 
